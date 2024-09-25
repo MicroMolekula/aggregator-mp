@@ -2,9 +2,18 @@ version: "3.1"
 volumes:
   postgres: ~
 services:
+  selenium:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - "4444:4444"
+    shm_size: '2gb'
+    environment:
+      - SE_NODE_MAX_SESSIONS=6
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+      - SE_VNC_PASSWORD=12345678
   nginx:
     image: nginx:alpine
-    container_name: billing.study-on.local
+    container_name: aggregator.mp
     working_dir: /app
     volumes:
       - ${PWD}:/app
@@ -33,4 +42,8 @@ services:
     environment:
       - COMPOSER_ALLOW_SUPERUSER=1
     links:
+      - postgres
+      - selenium
+    depends_on:
+      - selenium
       - postgres
