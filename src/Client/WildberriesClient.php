@@ -2,10 +2,7 @@
 
 namespace App\Client;
 
-use Facebook\WebDriver\Chrome\ChromeDevToolsDriver;
-use Facebook\WebDriver\Chrome\ChromeOptions;
 use Facebook\WebDriver\Exception\NoSuchElementException;
-use Facebook\WebDriver\Remote\DesiredCapabilities;
 use Facebook\WebDriver\Remote\RemoteWebDriver;
 use Facebook\WebDriver\Remote\RemoteWebElement;
 use Facebook\WebDriver\WebDriverBy;
@@ -13,37 +10,19 @@ use Facebook\WebDriver\WebDriverKeys;
 
 class WildberriesClient
 {
-    private const USER_AGENTS = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36 Edg/91.0.864.59',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    ];
+    private RemoteWebDriver $driver;
 
-    public RemoteWebDriver $driver;
-
-    public function __construct()
-    {
-        $host = 'http://172.18.0.3:4444';
-        $capabilities = DesiredCapabilities::chrome();
-        $chromeOptions = new ChromeOptions();
-        $chromeOptions->addArguments(['--headless']);
-
-        $capabilities->setCapability(ChromeOptions::CAPABILITY, $chromeOptions);
-
-        $this->driver = RemoteWebDriver::create($host, $capabilities);
-
-        $devTools = new ChromeDevToolsDriver($this->driver);
-        $devTools->execute(
-            'Network.setUserAgentOverride',
-            ['userAgent' => self::USER_AGENTS[random_int(0, count(self::USER_AGENTS) - 1)]],
-        );
+    public function __construct(
+        private Client $client,
+        private string $url,
+    ) {
+        $this->driver = $this->client->getDriver();
     }
 
     public function getCountProductsBySearch(string $text, int $page = 1): int
     {
         try {
-            $this->driver->get('https://www.wildberries.ru/catalog/0/search.aspx?search=' . urlencode($text) . '&page=' . $page);
+            $this->driver->get($this->url . urlencode($text) . '&page=' . $page);
             $this->driver->wait()->until(
                 function () {
                     $productHtml = $this->driver->findElements(WebDriverBy::cssSelector('.product-card__wrapper'));
@@ -63,11 +42,7 @@ class WildberriesClient
 
     public function getProductsArrayBySearch(string $text, int $page = 1): array
     {
-//        $countProducts = $this->getCountProductsBySearch($text);
-//        if ($countProducts === 0) {
-//            return [];
-//        }
-        $this->driver->get('https://www.wildberries.ru/catalog/0/search.aspx?search=' . urlencode($text) . '&page=' . $page);
+        $this->driver->get($this->url . urlencode($text) . '&page=' . $page);
         $this->waitLoadAllProducts();
         $productsHtml = $this->driver->findElements(WebDriverBy::cssSelector('.product-card__wrapper'));
         $productsArray = [];
